@@ -60,15 +60,53 @@ describe('TasksService', () => {
     taskRepository.findOne.mockResolvedValue(null);
     expect(tasksService.getTaskById(1, mockUser)).rejects.toThrow();
   });
-  describe('createTask',()=>{
-    it('Creates a task and returns created task', async ()=>{
+  describe('createTask', () => {
+    it('Creates a task and returns created task', async () => {
       taskRepository.createTask.mockResolvedValue('someTask');
-    
+
       expect(taskRepository.createTask).not.toHaveBeenCalled();
-      const createTaskDto = {title: 'Test Task', description: 'Test Desc'}
+      const createTaskDto = { title: 'Test Task', description: 'Test Desc' };
       const result = tasksService.createTask(createTaskDto, mockUser);
-      expect(taskRepository.createTask).toHaveBeenCalledWith(createTaskDto,mockUser);
+      expect(taskRepository.createTask).toHaveBeenCalledWith(
+        createTaskDto,
+        mockUser,
+      );
       expect(result).toEqual('someTask');
-    })
-  })
+    });
+  });
+
+  describe('Delete task', () => {
+    it('Call deleteTask to delete a task', async () => {
+      taskRepository.delete.mockResolvedValue({ affected: 1 });
+      expect(taskRepository.delete).not.toHaveBeenCalled();
+      await tasksService.deleteTask(1, mockUser);
+      expect(taskRepository.delete).toHaveBeenCalledWith({
+        id: 1,
+        userId: mockUser.id,
+      });
+    });
+    it('Throw error when task not found', () => {
+      taskRepository.delete.mockResolvedValue({ affected: 0 });
+      expect(tasksService.deleteTask(1, mockUser)).rejects.toThrow();
+    });
+  });
+  describe('Update Task status', () => {
+    it('Updates task', async () => {
+      const save = jest.fn().mockResolvedValue(true);
+      tasksService.getTaskById = jest.fn().mockResolvedValue({
+        status: TaskStatus.OPEN,
+        save,
+      });
+      expect(tasksService.getTaskById).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      const result = await tasksService.updateTaskStatus(
+        1,
+        TaskStatus.DONE,
+        mockUser,
+      );
+      expect(tasksService.getTaskById).toHaveBeenCalled();
+      expect(save).toHaveBeenCalled();
+      expect(result.status).toEqual(TaskStatus.DONE);
+    });
+  });
 });
